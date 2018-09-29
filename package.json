@@ -1,0 +1,26 @@
+{
+  "name": "httpc-cli",
+  "version": "1.0.0",
+  "description": "HTTP Client Command Line Interface App",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/sarthak3154/httpc-cli.git"
+  },
+  "author": "Sarthak Arora",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sarthak3154/httpc-cli/issues"
+  },
+  "homepage": "https://github.com/sarthak3154/httpc-cli#readme",
+  "dependencies": {
+    "net": "^1.0.2",
+    "yargs": "^12.0.2"
+  },
+  "bin": {
+    "httpc": "./server.js"
+  }
+}
