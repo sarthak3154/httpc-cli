@@ -1,4 +1,5 @@
 require('./arguments');
+const Api = require('./api');
 const yargs = require('yargs');
 
 checkHelpCommands = (argv) => {
@@ -36,7 +37,9 @@ exports.init = () => {
         .command('get <url> [arguments]', 'Get executes a HTTP GET request' +
             ' for a given URL and prints response', () => {
         }, (argv) => {
-            console.log('This GET message will be printed')
+            console.log('This GET message will be printed');
+            console.log(JSON.stringify(argv));
+            Api.get();
         })
         .command('post <url> [arguments]', 'Post executes a HTTP POST request and prints the response.', () => {
         }, (argv) => {
