@@ -37,13 +37,31 @@ exports.init = () => {
         .command('get <url> [arguments]', 'Get executes a HTTP GET request' +
             ' for a given URL and prints response', () => {
         }, (argv) => {
-            console.log('This GET message will be printed');
+            let headers_array = [];
+            if (argv.hasOwnProperty('h')) {
+                if (Array.isArray(argv.h)) {
+                    headers_array = headers_array.concat(argv.h);
+                } else {
+                    headers_array.push(argv.h);
+                }
+            }
+            const args = {
+                method: argv._[0],
+                url: argv.url,
+                v: argv.v,
+                h: headers_array
+            };
             console.log(JSON.stringify(argv));
-            Api.get();
+            Api.get(args);
         })
         .command('post <url> [arguments]', 'Post executes a HTTP POST request and prints the response.', () => {
         }, (argv) => {
-            console.log('This POST message will be printed')
+            const args = {
+                method: argv._[0],
+                url: argv.url,
+                v: argv.v
+            };
+            Api.post(args);
         })
         .option('verbose', {
             alias: 'v',
