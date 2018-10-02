@@ -9,6 +9,10 @@ getURLProperties = (url) => {
     return parse(url, true);
 };
 
+isEmpty = (obj) => {
+    return Object.keys(obj).length === 0;
+};
+
 createHTTPRequest = (request) => {
     let http_request;
     if (request.method === GET_CONSTANT) {
@@ -17,6 +21,7 @@ createHTTPRequest = (request) => {
         http_request = 'POST ';
     }
     http_request += (request.args.hasOwnProperty('pathname') ? request.args.pathname : '/')
+        + (!isEmpty(request.args.query) ? ('?' + request.args.href.toString().split('?')[1]) : '')
         + ' HTTP/1.0\r\nHost: ' + request.args.host + '\r\nUser-Agent: Concordia-HTTP/1.0\r\n';
 
     if (request.h.length > 0) {

@@ -79,7 +79,6 @@ exports.init = () => {
                     if (err) console.log(`${args.f} does not exist`);
                 });
             }
-
             Api.post(args);
         })
         .option('verbose', {
