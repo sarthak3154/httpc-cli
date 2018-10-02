@@ -22,7 +22,7 @@ createHTTPRequest = (request) => {
     }
     http_request += (request.args.hasOwnProperty('pathname') ? request.args.pathname : '/')
         + (!isEmpty(request.args.query) ? ('?' + request.args.href.toString().split('?')[1]) : '')
-        + ' HTTP/1.0\r\nHost: ' + request.args.host + '\r\nUser-Agent: Concordia-HTTP/1.0\r\n';
+        + ' HTTP/1.0\r\nHost: ' + request.args.host + `\r\nUser-Agent: ${USER_AGENT}\r\n`;
 
     if (request.h.length > 0) {
         request.h.forEach(value => {
@@ -40,7 +40,7 @@ createHTTPRequest = (request) => {
 };
 
 connectClient = (request) => {
-    client.connect({host: request.args.host, port: request.args.port || 80}, () => {
+    client.connect({host: request.args.host, port: request.args.port || DEFAULT_PORT}, () => {
         const http_request = createHTTPRequest(request);
         client.end(http_request);
     });
