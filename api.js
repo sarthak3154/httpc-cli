@@ -26,12 +26,7 @@ createHTTPRequest = (request) => {
     }
 
     if (request.hasOwnProperty('d') || request.hasOwnProperty('f')) {
-        let body;
-        if (request.hasOwnProperty('d')) {
-            body = request.d;
-        } else {
-            body = fs.readFileSync('DATA', 'utf8');
-        }
+        const body = (request.hasOwnProperty('d') ? request.d : fs.readFileSync('DATA', 'utf8'));
         http_request += ('Content-Length: ' + body.length + '\r\n\r\n');
         http_request += (body + '\r\n');
     }
@@ -42,14 +37,14 @@ createHTTPRequest = (request) => {
 connectClient = (request) => {
     client.connect({host: request.args.host, port: request.args.port || 80}, () => {
         const http_request = createHTTPRequest(request);
-        console.log('Request:\n' + http_request);
         client.end(http_request);
     });
 };
 
 let v = false, o = false;
 client.on('data', (data) => {
-    console.log('Response:\n' + data);
+    let response = data.toString().split('\r\n\r\n');
+    console.log((v ? data.toString() : response[1]));
 });
 
 client.on('end', () => {
@@ -59,26 +54,24 @@ client.on('end', () => {
 
 exports.get = (args) => {
     const url_args = getURLProperties(args.url);
+    v = args.v;
     const request = {
         method: args.method,
-        v: args.v,
         h: args.h,
         args: url_args
     };
-    console.log(JSON.stringify(request));
     connectClient(request);
 };
 
 exports.post = (args) => {
     const url_args = getURLProperties(args.url);
+    v = args.v;
     const request = {
         method: args.method,
-        v: args.v,
         h: args.h,
         d: args.d,
         f: args.f,
         args: url_args
     };
-    console.log((JSON.stringify(request)));
     connectClient(request);
 };

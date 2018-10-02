@@ -53,6 +53,7 @@ getJSONRequestArguments = (argv, headers) => {
         h: headers
     };
 };
+
 exports.init = () => {
     let argv = yargs.usage('Usage: httpc <command> [arguments]')
         .command('get <url> [arguments]', 'Get executes a HTTP GET request' +
@@ -60,7 +61,6 @@ exports.init = () => {
         }, (argv) => {
             const headers = getHeaders(argv);
             const args = getJSONRequestArguments(argv, headers);
-            console.log(JSON.stringify(argv));
             Api.get(args);
         })
         .command('post <url> [arguments]', 'Post executes a HTTP POST request and prints the response.', () => {
@@ -80,7 +80,6 @@ exports.init = () => {
                 });
             }
 
-            console.log(JSON.stringify(argv));
             Api.post(args);
         })
         .option('verbose', {
