@@ -46,12 +46,14 @@ getHeaders = (argv) => {
 };
 
 getJSONRequestArguments = (argv, headers) => {
-    return {
+    let args = {
         method: argv._[0],
         url: argv.url,
         v: argv.v,
         h: headers
     };
+    if (argv.hasOwnProperty('o')) args.o = argv.o;
+    return args;
 };
 
 exports.init = () => {

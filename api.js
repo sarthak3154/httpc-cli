@@ -46,10 +46,16 @@ connectClient = (request) => {
     });
 };
 
-let v = false, o = false;
+let v = false, saveToFile = false, file;
 client.on('data', (data) => {
     let response = data.toString().split('\r\n\r\n');
-    console.log((v ? data.toString() : response[1]));
+    if (saveToFile) {
+        fs.writeFile(file, (v ? data.toString() : response[1]), (err) => {
+            if (err) console.log(`Error saving to ${file}`);
+        });
+    } else {
+        console.log((v ? data.toString() : response[1]));
+    }
 });
 
 client.on('end', () => {
@@ -57,9 +63,17 @@ client.on('end', () => {
     process.exit(-1);
 });
 
+assignOptionalArguments = (args) => {
+    v = args.v;
+    if (args.hasOwnProperty('o')) {
+        saveToFile = true;
+        file = args.o;
+    }
+};
+
 exports.get = (args) => {
     const url_args = getURLProperties(args.url);
-    v = args.v;
+    assignOptionalArguments(args);
     const request = {
         method: args.method,
         h: args.h,
@@ -70,7 +84,7 @@ exports.get = (args) => {
 
 exports.post = (args) => {
     const url_args = getURLProperties(args.url);
-    v = args.v;
+    assignOptionalArguments(args);
     const request = {
         method: args.method,
         h: args.h,
