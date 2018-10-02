@@ -1,6 +1,7 @@
 require('./arguments');
 const Api = require('./api');
 const yargs = require('yargs');
+const fs = require('fs');
 
 checkHelpCommands = (argv) => {
 
@@ -32,35 +33,54 @@ checkHelpCommands = (argv) => {
     }
 };
 
+getHeaders = (argv) => {
+    let headers_array = [];
+    if (argv.hasOwnProperty('h')) {
+        if (Array.isArray(argv.h)) {
+            headers_array = headers_array.concat(argv.h);
+        } else {
+            headers_array.push(argv.h);
+        }
+    }
+    return headers_array;
+};
+
+getJSONRequestArguments = (argv, headers) => {
+    return {
+        method: argv._[0],
+        url: argv.url,
+        v: argv.v,
+        h: headers
+    };
+};
 exports.init = () => {
     let argv = yargs.usage('Usage: httpc <command> [arguments]')
         .command('get <url> [arguments]', 'Get executes a HTTP GET request' +
             ' for a given URL and prints response', () => {
         }, (argv) => {
-            let headers_array = [];
-            if (argv.hasOwnProperty('h')) {
-                if (Array.isArray(argv.h)) {
-                    headers_array = headers_array.concat(argv.h);
-                } else {
-                    headers_array.push(argv.h);
-                }
-            }
-            const args = {
-                method: argv._[0],
-                url: argv.url,
-                v: argv.v,
-                h: headers_array
-            };
+            const headers = getHeaders(argv);
+            const args = getJSONRequestArguments(argv, headers);
             console.log(JSON.stringify(argv));
             Api.get(args);
         })
         .command('post <url> [arguments]', 'Post executes a HTTP POST request and prints the response.', () => {
         }, (argv) => {
-            const args = {
-                method: argv._[0],
-                url: argv.url,
-                v: argv.v
-            };
+            const headers = getHeaders(argv);
+            const args = getJSONRequestArguments(argv, headers);
+
+            if (argv.hasOwnProperty('d') && argv.hasOwnProperty('f')) {
+                console.log('Either [-d] or [-f] can be used but not both.');
+                process.exit(0);
+            } else if (argv.hasOwnProperty('d')) {
+                args.d = argv.d;
+            } else if (argv.hasOwnProperty('f')) {
+                args.f = argv.f;
+                fs.access(args.f, fs.constants.F_OK, (err) => {
+                    if (err) console.log(`${args.f} does not exist`);
+                });
+            }
+
+            console.log(JSON.stringify(argv));
             Api.post(args);
         })
         .option('verbose', {

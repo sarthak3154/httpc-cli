@@ -1,35 +1,55 @@
 require('./arguments');
 const net = require('net');
 const parse = require('url-parse');
+const fs = require('fs');
+
 const client = new net.Socket();
 
 getURLProperties = (url) => {
     return parse(url, true);
 };
 
+createHTTPRequest = (request) => {
+    let http_request;
+    if (request.method === GET_CONSTANT) {
+        http_request = 'GET ';
+    } else if (request.method === POST_CONSTANT) {
+        http_request = 'POST ';
+    }
+    http_request += (request.args.hasOwnProperty('pathname') ? request.args.pathname : '/')
+        + ' HTTP/1.0\r\nHost: ' + request.args.host + '\r\nUser-Agent: Concordia-HTTP/1.0\r\n';
+
+    if (request.h.length > 0) {
+        request.h.forEach(value => {
+            http_request += (value + '\r\n');
+        })
+    }
+
+    if (request.hasOwnProperty('d') || request.hasOwnProperty('f')) {
+        let body;
+        if (request.hasOwnProperty('d')) {
+            body = request.d;
+        } else {
+            body = fs.readFileSync('DATA', 'utf8');
+        }
+        http_request += ('Content-Length: ' + body.length + '\r\n\r\n');
+        http_request += (body + '\r\n');
+    }
+    http_request += '\r\n';
+    return http_request;
+};
+
 connectClient = (request) => {
     client.connect({host: request.args.host, port: request.args.port || 80}, () => {
-        let http_request;
-        if (request.method === GET_CONSTANT) {
-            http_request = 'GET ';
-        } else if (request.method === POST_CONSTANT) {
-            http_request = 'POST ';
-        }
-        http_request += (request.args.hasOwnProperty('pathname') ? request.args.pathname : '/')
-            + ' HTTP/1.0\r\nHost: ' + request.args.host + '\r\nUser-Agent: Concordia-HTTP/1.0\r\n';
-
-        if (request.h.length > 0) {
-            request.h.forEach(value => {
-                http_request += (value + '\r\n');
-            })
-        }
-        http_request += '\r\n';
+        const http_request = createHTTPRequest(request);
+        console.log('Request:\n' + http_request);
         client.end(http_request);
     });
 };
 
+let v = false, o = false;
 client.on('data', (data) => {
-    console.log('Response :' + data);
+    console.log('Response:\n' + data);
 });
 
 client.on('end', () => {
@@ -51,5 +71,14 @@ exports.get = (args) => {
 
 exports.post = (args) => {
     const url_args = getURLProperties(args.url);
-
-}
+    const request = {
+        method: args.method,
+        v: args.v,
+        h: args.h,
+        d: args.d,
+        f: args.f,
+        args: url_args
+    };
+    console.log((JSON.stringify(request)));
+    connectClient(request);
+};
