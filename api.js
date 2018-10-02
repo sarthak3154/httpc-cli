@@ -60,7 +60,6 @@ client.on('data', (data) => {
 
 client.on('end', () => {
     client.end();
-    process.exit(-1);
 });
 
 assignOptionalArguments = (args) => {
