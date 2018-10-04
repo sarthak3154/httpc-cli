@@ -9,6 +9,18 @@ getURLProperties = (url) => {
     return parse(url, true);
 };
 
+getRequestObject = (url, args) => {
+    const url_args = getURLProperties(url);
+    const request = {
+        method: args.method,
+        h: args.h,
+        args: url_args
+    };
+    if (args.hasOwnProperty('d')) request.d = args.d;
+    else if (args.hasOwnProperty('f')) request.f = args.f;
+    return request;
+};
+
 isEmpty = (obj) => {
     return Object.keys(obj).length === 0;
 };
@@ -31,7 +43,7 @@ createHTTPRequest = (request) => {
     }
 
     if (request.hasOwnProperty('d') || request.hasOwnProperty('f')) {
-        const body = (request.hasOwnProperty('d') ? request.d : fs.readFileSync('DATA', 'utf8'));
+        const body = (request.hasOwnProperty('d') ? request.d : fs.readFileSync(args.f, 'utf8'));
         http_request += ('Content-Length: ' + body.length + '\r\n\r\n');
         http_request += (body + '\r\n');
     }
@@ -42,19 +54,32 @@ createHTTPRequest = (request) => {
 connectClient = (request) => {
     client.connect({host: request.args.host, port: request.args.port || DEFAULT_PORT}, () => {
         const http_request = createHTTPRequest(request);
-        client.end(http_request);
+        client.write(http_request);
     });
 };
 
 let v = false, saveToFile = false, file;
+let redirect_args = {}, redirect_count = 0;
 client.on('data', (data) => {
     let response = data.toString().split('\r\n\r\n');
-    if (saveToFile) {
-        fs.writeFile(file, (v ? data.toString() : response[1]), (err) => {
-            if (err) console.log(`Error saving to ${file}`);
-        });
+    if (data.toString().includes(REDIRECT_STATUS_CODE) && data.toString().includes('Location') && redirect_count <= 5) {
+        const redirect_array = data.toString().split('\r\n');
+        redirect_array.forEach(value => {
+            if (value.includes('Location')) {
+                const redirect_url = value.split(': ')[1];
+                const request = getRequestObject(redirect_url, redirect_args);
+                redirect_count++;
+                //TODO Redirect URL code yet to be done
+            }
+        })
     } else {
-        console.log((v ? data.toString() : response[1]));
+        if (saveToFile) {
+            fs.writeFile(file, (v ? data.toString() : response[1]), (err) => {
+                if (err) console.log(`Error saving to ${file}`);
+            });
+        } else {
+            console.log((v ? data.toString() : response[1]));
+        }
     }
 });
 
@@ -63,6 +88,7 @@ client.on('end', () => {
 });
 
 assignOptionalArguments = (args) => {
+    redirect_args = Object.assign({}, args);
     v = args.v;
     if (args.hasOwnProperty('o')) {
         saveToFile = true;
@@ -70,26 +96,8 @@ assignOptionalArguments = (args) => {
     }
 };
 
-exports.get = (args) => {
-    const url_args = getURLProperties(args.url);
+exports.httpRequest = (args) => {
     assignOptionalArguments(args);
-    const request = {
-        method: args.method,
-        h: args.h,
-        args: url_args
-    };
-    connectClient(request);
-};
-
-exports.post = (args) => {
-    const url_args = getURLProperties(args.url);
-    assignOptionalArguments(args);
-    const request = {
-        method: args.method,
-        h: args.h,
-        d: args.d,
-        f: args.f,
-        args: url_args
-    };
+    const request = getRequestObject(args.url, args);
     connectClient(request);
 };

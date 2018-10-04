@@ -63,7 +63,7 @@ exports.init = () => {
         }, (argv) => {
             const headers = getHeaders(argv);
             const args = getJSONRequestArguments(argv, headers);
-            Api.get(args);
+            Api.httpRequest(args);
         })
         .command('post <url> [arguments]', 'Post executes a HTTP POST request and prints the response.', () => {
         }, (argv) => {
@@ -81,7 +81,7 @@ exports.init = () => {
                     if (err) console.log(`${args.f} does not exist`);
                 });
             }
-            Api.post(args);
+            Api.httpRequest(args);
         })
         .option('verbose', {
             alias: 'v',
