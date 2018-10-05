@@ -1,6 +1,7 @@
 HTTPC is a Command Line Interface application that brings the use of HTTP Client.
 
-### Development Configuration
+## Development Configuration
+
 1. Install all the npm modules listed in package.json:
 
          npm i
@@ -10,7 +11,8 @@ HTTPC is a Command Line Interface application that brings the use of HTTP Client
 
 3. Now, you are good to go with your http client cli
 
-### Usage
+
+## Usage
 
 Find out about the httpc cli module usage by typing the following to the console
 
