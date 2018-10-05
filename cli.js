@@ -61,6 +61,13 @@ exports.init = () => {
         .command('get <url> [arguments]', 'Get executes a HTTP GET request' +
             ' for a given URL and prints response', () => {
         }, (argv) => {
+            if (argv.hasOwnProperty('d')) {
+                console.log('GET Request cannot be used with -d or --d option');
+                process.exit(0);
+            } else if (argv.hasOwnProperty('f')) {
+                console.log('GET Request cannot be used with -f option');
+                process.exit(0);
+            }
             const headers = getHeaders(argv);
             const args = getJSONRequestArguments(argv, headers);
             Api.httpRequest(args);
