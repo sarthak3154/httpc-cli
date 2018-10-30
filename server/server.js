@@ -27,17 +27,26 @@ sendResponse = (response, socket) => {
     socket.write(response);
 };
 
+handleGetRequest = (requestLine, socket) => {
+    if (requestLine.length === 2 || requestLine[1] === '/') {
+        Api.getFiles(response => {
+            sendResponse(response, socket);
+        });
+    } else {
+        Api.getFileDetails(requestLine[1], response => {
+            sendResponse(response, socket);
+        });
+    }
+};
+
 handleRequest = (buf, socket) => {
     const request = buf.toString('utf8');
     const reqData = request.split('\r\n');
     const method = reqData[0].toLowerCase();
-    const methodArray = method.split(' ');
+    const requestLine = method.split(' ');
 
     if (method.includes(GET_CONSTANT)) {
-        if (methodArray.length === 2 || methodArray[1] === '/')
-            Api.getFiles(response => {
-                sendResponse(response, socket);
-            });
+        handleGetRequest(requestLine, socket);
     } else if (method.includes(POST_CONSTANT)) {
         //TODO POST Request handling
         Api.post();
