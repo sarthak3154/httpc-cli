@@ -23,7 +23,11 @@ const argv = yargs.usage('httpfs is a simple file server.\n\nusage: httpfs [-v] 
     .help('help')
     .argv;
 
-handleRequest = (buf) => {
+sendResponse = (response, socket) => {
+    socket.write(response);
+};
+
+handleRequest = (buf, socket) => {
     const request = buf.toString('utf8');
     const reqData = request.split('\r\n');
     const method = reqData[0].toLowerCase();
@@ -31,7 +35,9 @@ handleRequest = (buf) => {
 
     if (method.includes(GET_CONSTANT)) {
         if (methodArray.length === 2 || methodArray[1] === '/')
-            Api.getFiles();
+            Api.getFiles(response => {
+                sendResponse(response, socket);
+            });
     } else if (method.includes(POST_CONSTANT)) {
         //TODO POST Request handling
         Api.post();
@@ -43,7 +49,7 @@ handleRequest = (buf) => {
 handleClient = (socket) => {
     console.log(`New Client Connected from ${JSON.stringify(socket.address())}`);
     socket.on('data', buf => {
-        handleRequest(buf);
+        handleRequest(buf, socket);
     }).on('error', err => {
         console.log(`Socket error ${err}`);
         socket.destroy();

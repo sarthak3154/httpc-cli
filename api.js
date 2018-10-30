@@ -80,6 +80,7 @@ connectClient = (request) => {
                 } else {
                     console.log((v ? data.toString() : response[1]));
                 }
+                client.end();
             }
         });
 
