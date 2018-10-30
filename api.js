@@ -1,14 +1,10 @@
 require('./arguments');
+const Util = require('./util');
 const net = require('net');
-const parse = require('url-parse');
 const fs = require('fs');
 
-getURLProperties = (url) => {
-    return parse(url, true);
-};
-
 getRequestObject = (url, args) => {
-    const url_args = getURLProperties(url);
+    const url_args = Util.getURLProperties(url);
     const request = {
         method: args.method,
         h: args.h,
@@ -54,7 +50,7 @@ let redirect_args = {}, redirect_count = 0;
 connectClient = (request) => {
     let client = new net.Socket();
 
-    client.connect({host: request.args.host, port: request.args.port || DEFAULT_PORT}, () => {
+    client.connect({host: request.args.hostname, port: request.args.port || DEFAULT_PORT}, () => {
         const http_request = createHTTPRequest(request);
         client.write(http_request);
 
@@ -67,7 +63,7 @@ connectClient = (request) => {
                     if (value.includes('Location')) {
                         let redirect_url = value.split(': ')[1];
                         if (redirect_url.startsWith('/')) {
-                            const url_args = getURLProperties(redirect_args.url);
+                            const url_args = Util.getURLProperties(redirect_args.url);
                             redirect_url = url_args.origin + redirect_url;
                         }
                         const request = getRequestObject(redirect_url, redirect_args);

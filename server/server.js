@@ -1,33 +1,9 @@
 #!/usr/bin/env node
 
 require('../arguments');
+const Api = require('./api');
 const net = require('net');
 const yargs = require('yargs');
-
-handleRequest = (buf) => {
-    const request = buf.toString('utf8');
-    const reqData = request.split('\r\n');
-    const typeHeader = reqData[0].toLowerCase();
-    if (typeHeader.includes(GET_CONSTANT)) {
-        //TODO GET Request handling
-    } else if (typeHeader.includes(POST_CONSTANT)) {
-        //TODO POST Request handling
-    } else {
-        //TODO INVALID Request handling
-    }
-};
-
-handleClient = (socket) => {
-    console.log(`New Client Connected from ${JSON.stringify(socket.address())}`);
-    socket.on('data', buf => {
-        handleRequest(buf);
-    }).on('error', err => {
-        console.log(`Socket error ${err}`);
-        socket.destroy();
-    }).on('end', () => {
-        socket.destroy();
-    });
-};
 
 const argv = yargs.usage('httpfs is a simple file server.\n\nusage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]')
     .default('port', 8080)
@@ -47,6 +23,35 @@ const argv = yargs.usage('httpfs is a simple file server.\n\nusage: httpfs [-v] 
     .help('help')
     .argv;
 
+handleRequest = (buf) => {
+    const request = buf.toString('utf8');
+    const reqData = request.split('\r\n');
+    const method = reqData[0].toLowerCase();
+    let endPoint;
+    if (method.includes(GET_CONSTANT)) {
+        const methodArray = method.split(' ');
+        endPoint = (methodArray.length === 2 ? '/' : methodArray[1]);
+        Api.get(endPoint);
+    } else if (method.includes(POST_CONSTANT)) {
+        //TODO POST Request handling
+        Api.post();
+    } else {
+        //TODO INVALID Request handling
+    }
+};
+
+handleClient = (socket) => {
+    console.log(`New Client Connected from ${JSON.stringify(socket.address())}`);
+    socket.on('data', buf => {
+        handleRequest(buf);
+    }).on('error', err => {
+        console.log(`Socket error ${err}`);
+        socket.destroy();
+    }).on('end', () => {
+        socket.destroy();
+    });
+
+};
 
 const server = net.createServer(handleClient)
     .on('error', err => {
@@ -56,4 +61,7 @@ const server = net.createServer(handleClient)
 server.listen({port: argv.port || DEFAULT_PORT}, () => {
     console.log('Server listening at port ' +
         (server.address().hasOwnProperty('port') ? server.address().port : server.address()));
+    if (argv.hasOwnProperty('d')) {
+        defaultDir = argv.d;
+    }
 });
