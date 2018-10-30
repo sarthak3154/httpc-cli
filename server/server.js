@@ -27,11 +27,11 @@ handleRequest = (buf) => {
     const request = buf.toString('utf8');
     const reqData = request.split('\r\n');
     const method = reqData[0].toLowerCase();
-    let endPoint;
+    const methodArray = method.split(' ');
+
     if (method.includes(GET_CONSTANT)) {
-        const methodArray = method.split(' ');
-        endPoint = (methodArray.length === 2 ? '/' : methodArray[1]);
-        Api.get(endPoint);
+        if (methodArray.length === 2 || methodArray[1] === '/')
+            Api.getFiles();
     } else if (method.includes(POST_CONSTANT)) {
         //TODO POST Request handling
         Api.post();

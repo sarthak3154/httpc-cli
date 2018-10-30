@@ -2,17 +2,27 @@ global.defaultDir = __dirname + '/filedb';
 
 const fs = require('fs');
 
-listFiles = () => {
+getFilesList = (callback) => {
     fs.readdir(defaultDir, (err, files) => {
-        console.log(files);
-    })
+        callback(files);
+    });
 };
 
-exports.get = (endPoint) => {
-    if (endPoint === '/') {
-        listFiles();
-    }
-    //TODO response handling
+exports.getFiles = () => {
+    getFilesList(files => {
+        console.log(files);
+        //TODO prepare response
+    });
+};
+
+exports.getFileDetails = (endPoint) => {
+    fs.readdir(defaultDir, (err, files) => {
+        files.forEach((file) => {
+            if (file.includes(endPoint)) {
+
+            }
+        })
+    })
 };
 
 exports.post = (endPoint) => {
