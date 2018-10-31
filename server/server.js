@@ -48,8 +48,9 @@ handleRequest = (buf, socket) => {
     if (method.includes(GET_CONSTANT)) {
         handleGetRequest(requestLine, socket);
     } else if (method.includes(POST_CONSTANT)) {
-        //TODO POST Request handling
-        Api.post();
+        Api.post(requestLine[1], request.split('\r\n\r\n')[1], response => {
+            sendResponse(response, socket);
+        });
     } else {
         //TODO INVALID Request handling
     }
