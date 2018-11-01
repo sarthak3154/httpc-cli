@@ -49,8 +49,9 @@ let v = false, saveToFile = false, file;
 let redirect_args = {}, redirect_count = 0;
 connectClient = (request) => {
     let client = new net.Socket();
+    const defaultPort = request.args.hostname.includes('localhost') ? LOCALHOST_PORT : DEFAULT_PORT;
 
-    client.connect({host: request.args.hostname, port: request.args.port || DEFAULT_PORT}, () => {
+    client.connect({host: request.args.hostname, port: request.args.port || defaultPort}, () => {
         const http_request = createHTTPRequest(request);
         client.write(http_request);
 
