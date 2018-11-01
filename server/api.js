@@ -37,6 +37,7 @@ prepareResponse = (options) => {
 readFile = (fileName, callback) => {
     fs.readdir(defaultDir, (err, files) => {
         if (err) {
+            if (debug) console.log('Error reading files from the Server Directory. Preparing Response...');
             const statusLine = 'HTTP/1.0 500 Internal Server Error\r\n';
             const options = {
                 statusLine: statusLine,
@@ -52,6 +53,7 @@ readFile = (fileName, callback) => {
         files.filter(Util.fileExtension).forEach((file) => {
             if (file.includes(fileName)) {
                 found = true;
+                if (debug) console.log(`File \'${file}\' found in Server Directory. Preparing Response...`);
                 const data = fs.readFileSync(defaultDir + '/' + file, 'utf8');
                 const contentLength = data.length;
                 const statusLine = (data.length > 0 ? 'HTTP/1.0 200 OK\r\n' : 'HTTP/1.0 204 No Content\r\n');
@@ -69,6 +71,7 @@ readFile = (fileName, callback) => {
         });
 
         if (!found) {
+            if (debug) console.log('File Not Found in the Server Directory. Preparing Response...');
             const statusLine = 'HTTP/1.0 404 Not Found\r\n';
             const options = {
                 statusLine: statusLine,
@@ -83,7 +86,11 @@ readFile = (fileName, callback) => {
 };
 
 exports.getFiles = (callback) => {
+    if (debug) {
+        console.log('Retrieving files from the Server Directory');
+    }
     getFilesList(files => {
+        if (debug) console.log('Files Successfully Accessed. Preparing Response...');
         const statusLine = (files.length > 0 ? 'HTTP/1.0 200 OK\r\n' : 'HTTP/1.0 204 No Content\r\n');
         const contentLength = getFilesContentLength(files);
         const body = (files.length > 0 ? files : null);
@@ -101,6 +108,9 @@ exports.getFiles = (callback) => {
 exports.getFileDetails = (endPoint, callback) => {
     const path = endPoint.split('/');
     if (path.length > 2) {
+        if (debug) {
+            console.log('Trying to access outside the File Server Directory. Access Restricted. Preparing Response...');
+        }
         const statusLine = 'HTTP/1.0 403 Forbidden\r\n';
         const options = {
             statusLine: statusLine,
@@ -118,8 +128,12 @@ exports.getFileDetails = (endPoint, callback) => {
 };
 
 exports.post = (endPoint, data, callback) => {
-
+    if (debug) {
+        console.log(`Requesting POST ${endPoint}`);
+    }
     fs.writeFile(defaultDir + endPoint + '.txt', data, (err) => {
+        if (err && debug) console.log('Error writing the file. Preparing Response...');
+        else console.log(`Write to file \'${endPoint.substring(1) + '.txt\''} successful. Preparing Response...`);
         const statusLine = ((err) ? 'HTTP/1.0 500 Internal Server Error\r\n' : 'HTTP/1.0 200 OK\r\n');
         const contentLength = (err) ? INTERNAL_SERVER_ERROR.length : FILE_UPDATE_SUCCESS.length;
         const body = (err) ? INTERNAL_SERVER_ERROR : FILE_UPDATE_SUCCESS;

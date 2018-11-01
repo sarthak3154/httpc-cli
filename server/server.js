@@ -5,6 +5,8 @@ const Api = require('./api');
 const net = require('net');
 const yargs = require('yargs');
 
+global.debug = false;
+
 const argv = yargs.usage('httpfs is a simple file server.\n\nusage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]')
     .default('port', 8080)
     .option('v', {
@@ -25,14 +27,21 @@ const argv = yargs.usage('httpfs is a simple file server.\n\nusage: httpfs [-v] 
 
 sendResponse = (response, socket) => {
     socket.write(response);
+    if (debug) console.log('Response sent to the client');
 };
 
 handleGetRequest = (requestLine, socket) => {
     if (requestLine.length === 2 || requestLine[1] === '/') {
+        if (debug) {
+            console.log('Requesting GET /');
+        }
         Api.getFiles(response => {
             sendResponse(response, socket);
         });
     } else {
+        if (debug) {
+            console.log(`Requesting GET ${requestLine[1]}`);
+        }
         Api.getFileDetails(requestLine[1], response => {
             sendResponse(response, socket);
         });
@@ -51,17 +60,19 @@ handleRequest = (buf, socket) => {
         Api.post(requestLine[1], request.split('\r\n\r\n')[1], response => {
             sendResponse(response, socket);
         });
-    } else {
-        //TODO INVALID Request handling
     }
 };
 
 handleClient = (socket) => {
-    console.log(`New Client Connected from ${JSON.stringify(socket.address())}`);
+    if (debug) {
+        console.log(`New Client Connected from ${JSON.stringify(socket.address())}`);
+    }
     socket.on('data', buf => {
         handleRequest(buf, socket);
     }).on('error', err => {
-        console.log(`Socket error ${err}`);
+        if (debug) {
+            console.log(`Socket error ${err}`);
+        }
         socket.destroy();
     }).on('end', () => {
         socket.destroy();
@@ -75,9 +86,11 @@ const server = net.createServer(handleClient)
     });
 
 server.listen({port: argv.port || DEFAULT_PORT}, () => {
-    console.log('Server listening at port ' +
-        (server.address().hasOwnProperty('port') ? server.address().port : server.address()));
-    if (argv.hasOwnProperty('d')) {
-        defaultDir = argv.d;
+    if (argv.v) debug = true;
+    if (debug) {
+        console.log('Server listening at port ' + (server.address().hasOwnProperty('port') ? server.address().port :
+            server.address()));
     }
+    if (argv.hasOwnProperty('d')) defaultDir = argv.d;
+
 });
