@@ -1,4 +1,4 @@
-require('./arguments');
+require('./constants');
 const Api = require('./api');
 const yargs = require('yargs');
 const fs = require('fs');

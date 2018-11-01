@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-require('../arguments');
+require('../constants');
 const Api = require('./api');
 const net = require('net');
 const yargs = require('yargs');
