@@ -2,6 +2,26 @@
 
 require('../../constants');
 const dgram = require('dgram');
+const yargs = require('yargs');
+
+const argv = yargs.usage('httpfs is a simple file server.\n\nusage: httpfs [-v] [-p PORT] [-d PATH-TO-DIR]')
+    .default('port', 8080)
+    .option('v', {
+        default: false,
+        description: 'Prints debugging messages.'
+    })
+    .option('p', {
+        alias: 'port',
+        description: 'Specifies the port number that the server will listen and serve at.\n' +
+            'Default is 8080.'
+    })
+    .option('d', {
+        description: 'Specifies the directory that the server will use to read/write requested files. ' +
+            'Default is the current directory when launching the application.'
+    })
+    .help('help')
+    .argv;
+
 const server = dgram.createSocket('udp4');
 
 server.on('error', (err) => {

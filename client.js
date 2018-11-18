@@ -1,49 +1,8 @@
 require('./constants');
 const Util = require('./util');
+const Request = require('./request');
 const net = require('net');
 const fs = require('fs');
-
-getRequestObject = (url, args) => {
-    const url_args = Util.getURLProperties(url);
-    const request = {
-        method: args.method,
-        h: args.h,
-        args: url_args
-    };
-    if (args.hasOwnProperty('d')) request.d = args.d;
-    else if (args.hasOwnProperty('f')) request.f = args.f;
-    return request;
-};
-
-isEmpty = (obj) => {
-    return Object.keys(obj).length === 0;
-};
-
-createHTTPRequest = (request) => {
-    let http_request;
-    if (request.method === GET_CONSTANT) {
-        http_request = 'GET ';
-    } else if (request.method === POST_CONSTANT) {
-        http_request = 'POST ';
-    }
-    http_request += (request.args.hasOwnProperty('pathname') ? request.args.pathname : '/')
-        + (!isEmpty(request.args.query) ? ('?' + request.args.href.toString().split('?')[1]) : '')
-        + ' HTTP/1.0\r\nHost: ' + request.args.host + `\r\nUser-Agent: ${USER_AGENT}\r\n`;
-
-    if (request.h.length > 0) {
-        request.h.forEach(value => {
-            http_request += (value + '\r\n');
-        })
-    }
-
-    if (request.hasOwnProperty('d') || request.hasOwnProperty('f')) {
-        const body = (request.hasOwnProperty('d') ? request.d : fs.readFileSync(request.f, 'utf8'));
-        http_request += ('Content-Length: ' + body.length + '\r\n\r\n');
-        http_request += (body + '\r\n');
-    }
-    http_request += '\r\n';
-    return http_request;
-};
 
 let v = false, saveToFile = false, file;
 let redirect_args = {}, redirect_count = 0;
@@ -52,7 +11,7 @@ connectClient = (request) => {
     const defaultPort = request.args.hostname.includes('localhost') ? LOCALHOST_PORT : DEFAULT_PORT;
 
     client.connect({host: request.args.hostname, port: request.args.port || defaultPort}, () => {
-        const http_request = createHTTPRequest(request);
+        const http_request = Request.createHTTPRequest(request);
         client.write(http_request);
 
         client.on('data', (data) => {
@@ -67,7 +26,7 @@ connectClient = (request) => {
                             const url_args = Util.getURLProperties(redirect_args.url);
                             redirect_url = url_args.origin + redirect_url;
                         }
-                        const request = getRequestObject(redirect_url, redirect_args);
+                        const request = Request.getRequestObject(redirect_url, redirect_args);
                         redirect_count++;
                         console.log(`Redirecting to ${redirect_url}`);
                         connectClient(request);
@@ -100,8 +59,8 @@ assignOptionalArguments = (args) => {
     }
 };
 
-exports.httpRequest = (args) => {
+exports.initRequest = (args) => {
     assignOptionalArguments(args);
-    const request = getRequestObject(args.url, args);
+    const request = Request.getRequestObject(args.url, args);
     connectClient(request);
 };

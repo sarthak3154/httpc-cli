@@ -7,7 +7,7 @@ global.DEFAULT_PORT = 80;
 global.LOCALHOST_PORT = 8080;
 global.USER_AGENT = 'Concordia-HTTP/1.0';
 global.REDIRECT_STATUS_CODE = '302';
-
+global.UDP_REQUEST_TYPE = true;
 
 /* Request/Response Content Types */
 

@@ -1,5 +1,6 @@
 require('./constants');
-const Api = require('./api');
+const Tcp = require('./client');
+const Udp = require('./udp/client');
 const yargs = require('yargs');
 const fs = require('fs');
 
@@ -70,7 +71,12 @@ exports.init = () => {
             }
             const headers = getHeaders(argv);
             const args = getJSONRequestArguments(argv, headers);
-            Api.httpRequest(args);
+
+            if (UDP_REQUEST_TYPE) {
+                Udp.initRequest(args);
+            } else {
+                Tcp.initRequest(args);
+            }
         })
         .command('post <url> [arguments]', 'Post executes a HTTP POST request and prints the response.', () => {
         }, (argv) => {
@@ -88,7 +94,12 @@ exports.init = () => {
                     if (err) console.log(`${args.f} does not exist`);
                 });
             }
-            Api.httpRequest(args);
+
+            if (UDP_REQUEST_TYPE) {
+                Udp.initRequest(args);
+            } else {
+                Tcp.initRequest(args);
+            }
         })
         .option('verbose', {
             alias: 'v',

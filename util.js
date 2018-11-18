@@ -12,3 +12,7 @@ exports.fileExtension = (file) => {
     const extName = path.extname(file);
     return extNames.includes(extName);
 };
+
+exports.isEmpty = (obj) => {
+    return Object.keys(obj).length === 0;
+};
