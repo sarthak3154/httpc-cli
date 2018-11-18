@@ -25,3 +25,14 @@ global.ERROR_FORBIDDEN = 'Access Restricted. Looks like you were trying to acces
     'the file outside the file server working directory.';
 global.FILE_NOT_FOUND = 'File Not found in the File Server Directory.';
 global.FILE_UPDATE_SUCCESS = 'File Created/Updated Successfully.';
+
+
+/* UDP Config */
+
+global.SERVER_PORT = 8007;
+global.SERVER_HOST = 'localhost';
+global.ROUTER_PORT = 3000;
+global.ROUTER_HOST = 'localhost';
+global.PACKET_MIN_LENGTH = 11;
+global.PACKET_MAX_LENGTH = 11 + 1024;
+global.PACKET_HEADERS_LENGTH = 12;
