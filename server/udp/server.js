@@ -28,7 +28,7 @@ const server = dgram.createSocket('udp4');
 
 handleRequest = (packet) => {
     const payload = packet.payload;
-    const reqData = request.split('\r\n');
+    const reqData = payload.split('\r\n');
     const method = reqData[0].toLowerCase();
 
     if (method.includes(GET_CONSTANT)) {
