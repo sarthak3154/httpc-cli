@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 require('../../constants');
+const Api = require('../api');
+const Packet = require('../../udp/packet');
 const dgram = require('dgram');
 const yargs = require('yargs');
 
@@ -24,14 +26,22 @@ const argv = yargs.usage('httpfs is a simple file server.\n\nusage: httpfs [-v] 
 
 const server = dgram.createSocket('udp4');
 
-server.on('error', (err) => {
-    console.log(`server error:\n${err.stack}`);
-    server.close();
-});
+handleRequest = (packet) => {
+    const payload = packet.payload;
+    const reqData = request.split('\r\n');
+    const method = reqData[0].toLowerCase();
 
-server.on('message', (msg, info) => {
-    console.log(msg);
-    console.log(`server received: ${msg} from ${info.address}:${info.port}`);
+    if (method.includes(GET_CONSTANT)) {
+        //TODO handle GET request
+    } else if (method.includes(POST_CONSTANT)) {
+        //TODO handle POST request
+    }
+};
+
+server.on('message', (buf, info) => {
+    const packet = Packet.fromBuffer(buf);
+    console.log(`Server received from ${info.address}:${info.port}`);
+    handleRequest(packet);
 });
 
 server.on('listening', () => {
@@ -39,9 +49,9 @@ server.on('listening', () => {
     console.log(`server is listening at ${address.address}:${address.port}`);
 });
 
-send = (msg, address, port) => {
-
-    server.send()
-};
+server.on('error', (err) => {
+    console.log(`server error:\n${err.stack}`);
+    server.close();
+});
 
 server.bind(SERVER_PORT);

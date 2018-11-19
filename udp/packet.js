@@ -20,17 +20,26 @@ class Packet {
         return buffer;
     };
 
-    static create(msg, address, port) {
+    static fromBuffer(buf) {
+        const packetInfo = {};
+        packetInfo.type = buf.readUInt8(0);
+        packetInfo.sequenceNo = buf.readUInt32BE(1);
+        packetInfo.peerAddress = ip.toString(buf, 5, 4);
+        packetInfo.peerPort = buf.readUInt16BE(9);
+        packetInfo.payload = buf.toString('utf8', 11);
+        return new Packet(packetInfo);
+    }
+
+    static create(http_request, address, port) {
         const packetInfo = {
             type: 0,
             sequenceNo: 1,
             peerAddress: address,
             peerPort: port,
-            payload: msg
+            payload: http_request
         };
         const packet = new Packet(packetInfo);
         return packet.toBuffer();
-
     };
 }
 
