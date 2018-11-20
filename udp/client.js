@@ -14,14 +14,20 @@ client.on('message', (buf, info) => {
 });
 
 send = (http_request) => {
-    const packetBuf = Packet.create(http_request, ip.address(), SERVER_PORT);
+    const packetBuf = new Packet.Builder(0).withSequenceNo(1).withPeerAddress(ip.address())
+        .withPeerPort(SERVER_PORT).withPayload(http_request).build().toBuffer();
     client.send(packetBuf, 0, PACKET_HEADERS_LENGTH + http_request.length, ROUTER_PORT, ROUTER_HOST, (err) => {
         if (err) client.close();
         else console.log('Request sent');
     });
 };
 
+threeWayHandshake = () => {
+
+};
+
 exports.initRequest = (args) => {
+    threeWayHandshake();
     const request = Request.getRequestObject(args.url, args);
     const http_request = Request.createHTTPRequest(request);
     send(http_request);

@@ -26,26 +26,10 @@ class Packet {
     };
 
     static fromBuffer(buf) {
-        const packetInfo = {};
-        packetInfo.type = buf.readUInt8(0);
-        packetInfo.sequenceNo = buf.readUInt32BE(1);
-        packetInfo.peerAddress = ip.toString(buf, 5, 4);
-        packetInfo.peerPort = buf.readUInt16BE(9);
-        packetInfo.payload = buf.toString('utf8', 11);
-        return new Packet(packetInfo);
+        return new Packet.Builder(buf.readUInt8(0)).withSequenceNo(buf.readUInt32BE(1))
+            .withPeerAddress(ip.toString(buf, 5, 4)).withPeerPort(buf.readUInt16BE(9))
+            .withPayload(buf.toString('utf8', 11)).build();
     }
-
-    static create(http_request, address, port) {
-        const packetInfo = {
-            type: 0,
-            sequenceNo: 1,
-            peerAddress: address,
-            peerPort: port,
-            payload: http_request
-        };
-        const packet = new Packet(packetInfo);
-        return packet.toBuffer();
-    };
 
     static get Builder() {
         class Builder {
