@@ -64,7 +64,9 @@ handleRequest = (packet) => {
     if (method.includes(GET_CONSTANT)) {
         handleGetRequest(requestLine, packet);
     } else if (method.includes(POST_CONSTANT)) {
-        //TODO handle POST request
+        Api.post(requestLine[1], payload.split('\r\n\r\n')[1], response => {
+            send(packet, response);
+        })
     }
 };
 
