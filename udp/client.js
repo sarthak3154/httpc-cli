@@ -7,7 +7,7 @@ const ip = require('ip');
 const dgram = require('dgram');
 const client = dgram.createSocket('udp4');
 
-let threeWayConnection = false;
+let threeWayConnection = false, isTimeoutOut = false;
 
 send = (packet_type, sequence_no, http_request) => {
     const packetBuf = new Packet.Builder().withType(packet_type).withSequenceNo(sequence_no).withPeerAddress(ip.address())
@@ -26,7 +26,7 @@ const clientPromise = new Promise((resolve) => {
     client.on('message', (buf, info) => {
         const packet = Packet.fromBuffer(buf);
 
-        if (packet.type === PacketType.SYN_ACK) {
+        if (packet.type === PacketType.SYN_ACK && !isTimeoutOut) {
             console.log(`Connection SYN-ACK Response received from server ${packet.peerAddress}:${packet.peerPort}`);
             console.log(`Connection ACK Reply sent to server ${packet.peerAddress}:${packet.peerPort}`);
             send(PacketType.ACK, 1, EMPTY_REQUEST_RESPONSE);
@@ -50,11 +50,13 @@ threeWayHandshake = () => {
 };
 
 exports.initRequest = (args) => {
-    const request = Request.getRequestObject(args.url, args);
-    const http_request = Request.createHTTPRequest(request);
     threeWayHandshake().catch(() => {
+        isTimeoutOut = true;
         console.log('Three Way Handshake failed. Connection couldn\'t be established');
     });
+
+    const request = Request.getRequestObject(args.url, args);
+    const http_request = Request.createHTTPRequest(request);
     clientPromise.then(isConnected => {
         if (isConnected) {
             send(PacketType.DATA, 1, http_request);
