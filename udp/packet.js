@@ -11,8 +11,8 @@ class Packet {
     }
 
     toBuilder() {
-        return new Packet.Builder(this.type).withSequenceNo(this.sequenceNo).withPeerAddress(this.peerAddress)
-            .withPeerPort(this.peerPort).withPayload(this.payload);
+        return new Packet.Builder().withType(this.type).withSequenceNo(this.sequenceNo)
+            .withPeerAddress(this.peerAddress).withPeerPort(this.peerPort).withPayload(this.payload);
     }
 
     toBuffer() {
@@ -26,15 +26,16 @@ class Packet {
     };
 
     static fromBuffer(buf) {
-        return new Packet.Builder(buf.readUInt8(0)).withSequenceNo(buf.readUInt32BE(1))
+        return new Packet.Builder().withType(buf.readUInt8(0)).withSequenceNo(buf.readUInt32BE(1))
             .withPeerAddress(ip.toString(buf, 5, 4)).withPeerPort(buf.readUInt16BE(9))
             .withPayload(buf.toString('utf8', 11)).build();
     }
 
     static get Builder() {
         class Builder {
-            constructor(packetType) {
+            withType(packetType) {
                 this.type = packetType;
+                return this;
             }
 
             withSequenceNo(sequenceNo) {

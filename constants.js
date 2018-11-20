@@ -8,8 +8,11 @@ global.LOCALHOST_PORT = 8080;
 global.USER_AGENT = 'Concordia-HTTP/1.0';
 global.REDIRECT_STATUS_CODE = '302';
 global.UDP_REQUEST_TYPE = true;
+global.EMPTY_REQUEST_RESPONSE = "";
+global.RESPONSE_TIMEOUT = 15000;
 
-/* Request/Response Content Types */
+
+/* Request/Response Content PacketType */
 
 global.CONTENT_TYPE_TEXT = 'text/plain';
 global.CONTENT_TYPE_JSON = 'application/json';
@@ -36,3 +39,11 @@ global.ROUTER_HOST = 'localhost';
 global.PACKET_MIN_LENGTH = 11;
 global.PACKET_MAX_LENGTH = 11 + 1024;
 global.PACKET_HEADERS_LENGTH = 12;
+
+global.PacketType = {
+    DATA: 0,
+    ACK: 1,
+    SYN: 2,
+    SYN_ACK: 3,
+    NAK: 4
+};
