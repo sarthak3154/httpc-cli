@@ -6,7 +6,9 @@ const fs = require('fs');
 const mime = require('mime-types');
 
 getFilesList = (callback) => {
+    console.log(defaultDir);
     fs.readdir(defaultDir, (err, files) => {
+        if (err) callback(null);
         callback(files);
     });
 };
@@ -90,10 +92,17 @@ exports.getFiles = (callback) => {
         console.log('Retrieving files from the Server Directory');
     }
     getFilesList(files => {
-        if (debug) console.log('Files Successfully Accessed. Preparing Response...');
-        const statusLine = (files.length > 0 ? 'HTTP/1.0 200 OK\r\n' : 'HTTP/1.0 204 No Content\r\n');
-        const contentLength = getFilesContentLength(files);
-        const body = (files.length > 0 ? files : null);
+        if (debug) {
+            if (files) {
+                console.log('Files Successfully Accessed. Preparing Response...');
+            } else {
+                console.log('Error retrieving files. Preparing response');
+            }
+        }
+        const statusLine = (files != null ? (files.length > 0 ? 'HTTP/1.0 200 OK\r\n' : 'HTTP/1.0 204 No Content\r\n') :
+            'HTTP/1.0 500 Internal Server Error\r\n');
+        const contentLength = (files != null ? getFilesContentLength(files) : 0);
+        const body = (files != null && files.length > 0 ? files : null);
         const options = {
             statusLine: statusLine,
             contentType: CONTENT_TYPE_TEXT,

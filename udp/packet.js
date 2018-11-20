@@ -2,12 +2,17 @@ require('../constants');
 const ip = require('ip');
 
 class Packet {
-    constructor(packetInfo) {
-        this.type = packetInfo.type;
-        this.sequenceNo = packetInfo.sequenceNo;
-        this.peerAddress = packetInfo.peerAddress;
-        this.peerPort = packetInfo.peerPort;
-        this.payload = packetInfo.payload;
+    constructor(builder) {
+        this.type = builder.type;
+        this.sequenceNo = builder.sequenceNo;
+        this.peerAddress = builder.peerAddress;
+        this.peerPort = builder.peerPort;
+        this.payload = builder.payload;
+    }
+
+    toBuilder() {
+        return new Packet.Builder(this.type).withSequenceNo(this.sequenceNo).withPeerAddress(this.peerAddress)
+            .withPeerPort(this.peerPort).withPayload(this.payload);
     }
 
     toBuffer() {
@@ -41,6 +46,40 @@ class Packet {
         const packet = new Packet(packetInfo);
         return packet.toBuffer();
     };
+
+    static get Builder() {
+        class Builder {
+            constructor(packetType) {
+                this.type = packetType;
+            }
+
+            withSequenceNo(sequenceNo) {
+                this.sequenceNo = sequenceNo;
+                return this;
+            }
+
+            withPeerAddress(peerAddress) {
+                this.peerAddress = peerAddress;
+                return this;
+            }
+
+            withPeerPort(peerPort) {
+                this.peerPort = peerPort;
+                return this;
+            }
+
+            withPayload(payload) {
+                this.payload = payload;
+                return this;
+            }
+
+            build() {
+                return new Packet(this);
+            }
+        }
+
+        return Builder;
+    }
 }
 
 module.exports = Packet;

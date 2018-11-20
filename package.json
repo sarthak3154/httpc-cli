@@ -26,6 +26,6 @@
   },
   "bin": {
     "httpc": "./index.js",
-    "httpfs": "server/server.js"
+    "httpfs": "server/udp/server.js"
   }
 }
