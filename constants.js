@@ -9,6 +9,7 @@ global.USER_AGENT = 'Concordia-HTTP/1.0';
 global.REDIRECT_STATUS_CODE = '302';
 global.UDP_REQUEST_TYPE = true;
 global.EMPTY_REQUEST_RESPONSE = "";
+global.ESTABLISH_CONNECTION = "Connected";
 global.RESPONSE_TIMEOUT = 15000;
 
 

@@ -29,13 +29,16 @@ const clientPromise = new Promise((resolve) => {
         if (packet.type === PacketType.SYN_ACK && !isTimedOut) {
             console.log(`Connection SYN-ACK Response received from server ${packet.peerAddress}:${packet.peerPort}`);
             console.log(`Connection ACK Reply sent to server ${packet.peerAddress}:${packet.peerPort}`);
-            send(PacketType.ACK, 1, EMPTY_REQUEST_RESPONSE);
+            send(PacketType.ACK, 1, ESTABLISH_CONNECTION);
             threeWayConnection = true;
             console.log('Connection Established.');
             resolve(true);
         } else {
             console.log('\nReceived %d bytes from %s:%d', buf.length, packet.peerAddress, packet.peerPort);
             console.log('Data received from server :\n\n' + packet.payload);
+            if (packet.type === PacketType.DATA) {
+                send(PacketType.ACK, packet.sequenceNo, EMPTY_REQUEST_RESPONSE);
+            }
         }
     });
 });

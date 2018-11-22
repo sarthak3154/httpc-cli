@@ -44,7 +44,7 @@ send = (sendPacket) => {
             if (sendPacket.type === PacketType.SYN_ACK) {
                 console.log(`Connection SYN-ACK Response sent to client ${sendPacket.peerAddress}:${sendPacket.peerPort}`);
             } else {
-                console.log('Response sent');
+                console.log(`Response sent to ${sendPacket.peerAddress}:${sendPacket.peerPort}`);
             }
         }
     })
@@ -102,8 +102,12 @@ handleRequest = (packet) => {
         send(sendPacket);
     } else if (packet.type === PacketType.ACK) {
         if (debug) {
-            console.log(`Connection ACK Reply received from client ${packet.peerAddress}:${packet.peerPort}`);
-            console.log('Connection Established.\n');
+            if (packet.payload === ESTABLISH_CONNECTION) {
+                console.log(`Connection ACK Reply received from client ${packet.peerAddress}:${packet.peerPort}`);
+                console.log('Connection Established.\n');
+            } else {
+                console.log(`ACK Received from ${packet.peerAddress}:${packet.peerPort}`);
+            }
         }
     } else {
         if (debug) console.log(`DATA Request received from ${packet.peerAddress}:${packet.peerPort}`);
