@@ -6,7 +6,6 @@ const fs = require('fs');
 const mime = require('mime-types');
 
 getFilesList = (callback) => {
-    console.log(defaultDir);
     fs.readdir(defaultDir, (err, files) => {
         if (err) callback(null);
         callback(files);
@@ -53,7 +52,7 @@ readFile = (fileName, callback) => {
 
         let found = false;
         files.filter(Util.fileExtension).forEach((file) => {
-            if (file.includes(fileName)) {
+            if (file.includes(fileName) && !found) {
                 found = true;
                 if (debug) console.log(`File \'${file}\' found in Server Directory. Preparing Response...`);
                 const data = fs.readFileSync(defaultDir + '/' + file, 'utf8');

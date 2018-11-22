@@ -31,10 +31,10 @@ const clientPromise = new Promise((resolve) => {
             console.log(`Connection ACK Reply sent to server ${packet.peerAddress}:${packet.peerPort}`);
             send(PacketType.ACK, 1, EMPTY_REQUEST_RESPONSE);
             threeWayConnection = true;
-            console.log('Connection Established.\n');
+            console.log('Connection Established.');
             resolve(true);
         } else {
-            console.log('Received %d bytes from %s:%d', buf.length, packet.peerAddress, packet.peerPort);
+            console.log('\nReceived %d bytes from %s:%d', buf.length, packet.peerAddress, packet.peerPort);
             console.log('Data received from server :\n\n' + packet.payload);
         }
     });

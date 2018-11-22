@@ -36,14 +36,14 @@ global.SERVER_PORT = 8007;
 global.SERVER_HOST = 'localhost';
 global.ROUTER_PORT = 3000;
 global.ROUTER_HOST = 'localhost';
-global.PACKET_MIN_LENGTH = 11;
-global.PACKET_MAX_LENGTH = 11 + 1024;
-global.PACKET_HEADERS_LENGTH = 12;
+global.PACKET_PAYLOAD_SIZE = 1013;
+global.PACKET_MAX_LENGTH = 1024;
+global.PACKET_HEADERS_LENGTH = 11;
 
 global.PacketType = {
     DATA: 0,
-    ACK: 1,
-    SYN: 2,
-    SYN_ACK: 3,
+    SYN: 1,
+    SYN_ACK: 2,
+    ACK: 3,
     NAK: 4
 };

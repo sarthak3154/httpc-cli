@@ -28,23 +28,38 @@ const argv = yargs.usage('httpfs is a simple file server.\n\nusage: httpfs [-v] 
 
 const server = dgram.createSocket('udp4');
 
-send = (packet, packetType, response) => {
-    let packetBuilder = packet.toBuilder().withPayload(response);
+createPacket = (clientPacket, packetType, sequenceNo, response) => {
+    let packetBuilder = clientPacket.toBuilder().withSequenceNo(sequenceNo).withPayload(response);
     if (packetType === PacketType.SYN_ACK) {
         packetBuilder = packetBuilder.withType(packetType);
     }
-    const sendPacket = packetBuilder.build();
+    return packetBuilder.build();
+};
+
+send = (sendPacket) => {
     const packetBuf = sendPacket.toBuffer();
-    server.send(packetBuf, 0, PACKET_HEADERS_LENGTH + response.length, ROUTER_PORT, ROUTER_HOST, (err) => {
+    server.send(packetBuf, 0, PACKET_HEADERS_LENGTH + sendPacket.payload.length, ROUTER_PORT, ROUTER_HOST, (err) => {
         if (err) server.close();
         else if (debug) {
-            if (packetType === PacketType.SYN_ACK) {
-                console.log(`Connection SYN-ACK Response sent to client ${packet.peerAddress}:${packet.peerPort}`);
+            if (sendPacket.type === PacketType.SYN_ACK) {
+                console.log(`Connection SYN-ACK Response sent to client ${sendPacket.peerAddress}:${sendPacket.peerPort}`);
             } else {
                 console.log('Response sent');
             }
         }
     })
+};
+
+createMultiplePackets = (packet, response) => {
+    let packets = [];
+    const packetsCount = response.length / PACKET_PAYLOAD_SIZE + 1;
+    for (let i = 0; i < packetsCount; i++) {
+        const payload = response.slice(i * PACKET_PAYLOAD_SIZE, PACKET_PAYLOAD_SIZE * (i + 1));
+        const sendPacket = createPacket(packet, PacketType.DATA, i + 1, payload);
+        send(sendPacket);
+        packets.push(sendPacket);
+    }
+    return packets;
 };
 
 handleGetRequest = (requestLine, packet) => {
@@ -53,14 +68,24 @@ handleGetRequest = (requestLine, packet) => {
             console.log('Requesting GET /');
         }
         Api.getFiles(response => {
-            send(packet, PacketType.DATA, response);
+            if (response.length > PACKET_MAX_LENGTH) {
+                createMultiplePackets(packet, response);
+            } else {
+                const sendPacket = createPacket(packet, PacketType.DATA, packet.sequenceNo, response);
+                send(sendPacket);
+            }
         });
     } else {
         if (debug) {
             console.log(`Requesting GET ${requestLine[1]}`);
         }
         Api.getFileDetails(requestLine[1], response => {
-            send(packet, PacketType.DATA, response);
+            if (response.length > PACKET_MAX_LENGTH) {
+                createMultiplePackets(packet, response);
+            } else {
+                const sendPacket = createPacket(packet, PacketType.DATA, packet.sequenceNo, response);
+                send(sendPacket);
+            }
         });
     }
 };
@@ -73,7 +98,8 @@ handleRequest = (packet) => {
 
     if (packet.type === PacketType.SYN) {
         if (debug) console.log(`Connection SYN Request received from client ${packet.peerAddress}:${packet.peerPort}`)
-        send(packet, PacketType.SYN_ACK, EMPTY_REQUEST_RESPONSE);
+        const sendPacket = createPacket(packet, PacketType.SYN_ACK, packet.sequenceNo, EMPTY_REQUEST_RESPONSE);
+        send(sendPacket);
     } else if (packet.type === PacketType.ACK) {
         if (debug) {
             console.log(`Connection ACK Reply received from client ${packet.peerAddress}:${packet.peerPort}`);
@@ -85,11 +111,11 @@ handleRequest = (packet) => {
             handleGetRequest(requestLine, packet);
         } else if (method.includes(POST_CONSTANT)) {
             Api.post(requestLine[1], payload.split('\r\n\r\n')[1], response => {
-                send(packet, PacketType.DATA, response);
-            })
+                const sendPacket = createPacket(packet, PacketType.DATA, packet.sequenceNo, response);
+                send(sendPacket);
+            });
         }
     }
-
 };
 
 server.on('message', (buf, info) => {
