@@ -41,11 +41,16 @@ send = (sendPacket) => {
     const packetBuf = sendPacket.toBuffer();
     server.send(packetBuf, 0, PACKET_HEADERS_LENGTH + sendPacket.payload.length, ROUTER_PORT, ROUTER_HOST, (err) => {
         if (err) server.close();
-        else if (debug) {
-            if (sendPacket.type === PacketType.SYN_ACK) {
-                console.log(`Connection SYN-ACK Response sent to client ${sendPacket.peerAddress}:${sendPacket.peerPort}`);
-            } else {
-                console.log(`Response sent to ${sendPacket.peerAddress}:${sendPacket.peerPort}`);
+        else {
+            if (debug) {
+                if (sendPacket.type === PacketType.SYN_ACK) {
+                    console.log(`Connection SYN-ACK Response sent to client ${sendPacket.peerAddress}:${sendPacket.peerPort}`);
+                } else {
+                    console.log(`Response sent to ${sendPacket.peerAddress}:${sendPacket.peerPort}`);
+                }
+            }
+            if (sendPacket.type !== PacketType.SYN_ACK) {
+                this.initPacketTimeout(sendPacket);
             }
         }
     })
@@ -61,15 +66,12 @@ exports.initPacketTimeout = (packet) => {
         }, RESPONSE_TIMEOUT);
     }).catch((packet) => {
         send(packet);
-        this.initPacketTimeout(packet);
     });
 };
 
 sendPendingPacket = (packetNo) => {
     send(segmentedPackets[packetNo]);
     slidingWindow.push(PacketType.NAK);
-    this.initPacketTimeout(segmentedPackets[packetNo]);
-
 };
 
 sendMultiplePackets = (packet, response) => {
@@ -81,7 +83,6 @@ sendMultiplePackets = (packet, response) => {
         if (i < WINDOW_SIZE) {
             slidingWindow.push(PacketType.NAK);
             send(sendPacket);
-            this.initPacketTimeout(sendPacket)
         }
         segmentedPackets.push(sendPacket);
     }
@@ -97,7 +98,9 @@ handleGetRequest = (requestLine, packet) => {
                 sendMultiplePackets(packet, response);
             } else {
                 const sendPacket = createPacket(packet, PacketType.DATA, packet.sequenceNo, response);
+                slidingWindow.push(PacketType.NAK);
                 send(sendPacket);
+                segmentedPackets.push(sendPacket);
             }
         });
     } else {
@@ -109,7 +112,9 @@ handleGetRequest = (requestLine, packet) => {
                 sendMultiplePackets(packet, response);
             } else {
                 const sendPacket = createPacket(packet, PacketType.DATA, packet.sequenceNo, response);
+                slidingWindow.push(PacketType.NAK);
                 send(sendPacket);
+                segmentedPackets.push(sendPacket);
             }
         });
     }
@@ -156,7 +161,9 @@ handleRequest = (packet) => {
         } else if (method.includes(POST_CONSTANT)) {
             Api.post(requestLine[1], payload.split('\r\n\r\n')[1], response => {
                 const sendPacket = createPacket(packet, PacketType.DATA, packet.sequenceNo, response);
+                slidingWindow.push(PacketType.NAK);
                 send(sendPacket);
+                segmentedPackets.push(sendPacket);
             });
         }
     }
