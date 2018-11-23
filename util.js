@@ -16,3 +16,7 @@ exports.fileExtension = (file) => {
 exports.isEmpty = (obj) => {
     return Object.keys(obj).length === 0;
 };
+
+exports.isNotNull = (element) => {
+    return element != null;
+};

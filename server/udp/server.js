@@ -135,7 +135,8 @@ handleRequest = (packet) => {
             if (packet.payload === ESTABLISH_CONNECTION) {
                 console.log(`Connection ACK Reply received from client ${packet.peerAddress}:${packet.peerPort}`);
                 console.log('Connection Established.\n');
-            } else {
+            } else if (segmentedPackets.length > 0 && packet.sequenceNo >= segmentedPackets[0].sequenceNo &&
+                slidingWindow[packet.sequenceNo - segmentedPackets[0].sequenceNo] === PacketType.NAK) {
                 console.log(`ACK #${packet.sequenceNo} received from ${packet.peerAddress}:${packet.peerPort}`);
             }
         }
