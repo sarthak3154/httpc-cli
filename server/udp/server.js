@@ -51,9 +51,25 @@ send = (sendPacket) => {
     })
 };
 
+exports.initPacketTimeout = (packet) => {
+    new Promise((resolve, reject) => {
+        setTimeout(() => {
+            if (segmentedPackets.length > 0 && segmentedPackets[0].sequenceNo <= packet.sequenceNo &&
+                slidingWindow[packet.sequenceNo - segmentedPackets[0].sequenceNo] === PacketType.NAK) {
+                reject(packet);
+            }
+        }, RESPONSE_TIMEOUT);
+    }).catch((packet) => {
+        send(packet);
+        this.initPacketTimeout(packet);
+    });
+};
+
 sendPendingPacket = (packetNo) => {
     send(segmentedPackets[packetNo]);
     slidingWindow.push(PacketType.NAK);
+    this.initPacketTimeout(segmentedPackets[packetNo]);
+
 };
 
 sendMultiplePackets = (packet, response) => {
@@ -65,6 +81,7 @@ sendMultiplePackets = (packet, response) => {
         if (i < WINDOW_SIZE) {
             slidingWindow.push(PacketType.NAK);
             send(sendPacket);
+            this.initPacketTimeout(sendPacket)
         }
         segmentedPackets.push(sendPacket);
     }

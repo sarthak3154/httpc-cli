@@ -10,7 +10,7 @@ global.REDIRECT_STATUS_CODE = '302';
 global.UDP_REQUEST_TYPE = true;
 global.EMPTY_REQUEST_RESPONSE = "";
 global.ESTABLISH_CONNECTION = "Connected";
-global.RESPONSE_TIMEOUT = 15000;
+global.RESPONSE_TIMEOUT = 5000;
 
 
 /* Request/Response Content PacketType */
