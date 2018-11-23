@@ -40,6 +40,7 @@ global.ROUTER_HOST = 'localhost';
 global.PACKET_PAYLOAD_SIZE = 1013;
 global.PACKET_MAX_LENGTH = 1024;
 global.PACKET_HEADERS_LENGTH = 11;
+global.WINDOW_SIZE = 8;
 
 global.PacketType = {
     DATA: 0,

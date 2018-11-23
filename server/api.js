@@ -48,40 +48,40 @@ readFile = (fileName, callback) => {
             };
             const response = prepareResponse(options);
             callback(response);
-        }
+        } else {
+            let found = false;
+            files.filter(Util.fileExtension).forEach((file) => {
+                if (file.includes(fileName) && !found) {
+                    found = true;
+                    if (debug) console.log(`File \'${file}\' found in Server Directory. Preparing Response...`);
+                    const data = fs.readFileSync(defaultDir + '/' + file, 'utf8');
+                    const contentLength = data.length;
+                    const statusLine = (data.length > 0 ? 'HTTP/1.0 200 OK\r\n' : 'HTTP/1.0 204 No Content\r\n');
+                    const body = (data.length > 0 ? data : null);
+                    const options = {
+                        statusLine: statusLine,
+                        contentType: mime.contentType(file),
+                        contentLength: contentLength,
+                        body: body,
+                        file: defaultDir + '/' + file
+                    };
+                    const response = prepareResponse(options);
+                    callback(response);
+                }
+            });
 
-        let found = false;
-        files.filter(Util.fileExtension).forEach((file) => {
-            if (file.includes(fileName) && !found) {
-                found = true;
-                if (debug) console.log(`File \'${file}\' found in Server Directory. Preparing Response...`);
-                const data = fs.readFileSync(defaultDir + '/' + file, 'utf8');
-                const contentLength = data.length;
-                const statusLine = (data.length > 0 ? 'HTTP/1.0 200 OK\r\n' : 'HTTP/1.0 204 No Content\r\n');
-                const body = (data.length > 0 ? data : null);
+            if (!found) {
+                if (debug) console.log('File Not Found in the Server Directory. Preparing Response...');
+                const statusLine = 'HTTP/1.0 404 Not Found\r\n';
                 const options = {
                     statusLine: statusLine,
-                    contentType: mime.contentType(file),
-                    contentLength: contentLength,
-                    body: body,
-                    file: defaultDir + '/' + file
+                    contentType: CONTENT_TYPE_TEXT,
+                    contentLength: FILE_NOT_FOUND.length,
+                    body: FILE_NOT_FOUND
                 };
                 const response = prepareResponse(options);
                 callback(response);
             }
-        });
-
-        if (!found) {
-            if (debug) console.log('File Not Found in the Server Directory. Preparing Response...');
-            const statusLine = 'HTTP/1.0 404 Not Found\r\n';
-            const options = {
-                statusLine: statusLine,
-                contentType: CONTENT_TYPE_TEXT,
-                contentLength: FILE_NOT_FOUND.length,
-                body: FILE_NOT_FOUND
-            };
-            const response = prepareResponse(options);
-            callback(response);
         }
     });
 };

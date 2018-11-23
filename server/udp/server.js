@@ -27,6 +27,7 @@ const argv = yargs.usage('httpfs is a simple file server.\n\nusage: httpfs [-v] 
     .argv;
 
 const server = dgram.createSocket('udp4');
+let segmentedPackets = [], slidingWindow = [];
 
 createPacket = (clientPacket, packetType, sequenceNo, response) => {
     let packetBuilder = clientPacket.toBuilder().withSequenceNo(sequenceNo).withPayload(response);
@@ -50,16 +51,23 @@ send = (sendPacket) => {
     })
 };
 
-createMultiplePackets = (packet, response) => {
-    let packets = [];
-    const packetsCount = response.length / PACKET_PAYLOAD_SIZE + 1;
+sendPendingPacket = (packetNo) => {
+    send(segmentedPackets[packetNo]);
+    slidingWindow.push(PacketType.NAK);
+};
+
+sendMultiplePackets = (packet, response) => {
+    const packetsCount = response.length / PACKET_PAYLOAD_SIZE;
+    if (debug) console.log('#packets to be sent: ' + Math.floor(packetsCount) + '\n');
     for (let i = 0; i < packetsCount; i++) {
         const payload = response.slice(i * PACKET_PAYLOAD_SIZE, PACKET_PAYLOAD_SIZE * (i + 1));
         const sendPacket = createPacket(packet, PacketType.DATA, i + 1, payload);
-        send(sendPacket);
-        packets.push(sendPacket);
+        if (i < WINDOW_SIZE) {
+            slidingWindow.push(PacketType.NAK);
+            send(sendPacket);
+        }
+        segmentedPackets.push(sendPacket);
     }
-    return packets;
 };
 
 handleGetRequest = (requestLine, packet) => {
@@ -69,7 +77,7 @@ handleGetRequest = (requestLine, packet) => {
         }
         Api.getFiles(response => {
             if (response.length > PACKET_MAX_LENGTH) {
-                createMultiplePackets(packet, response);
+                sendMultiplePackets(packet, response);
             } else {
                 const sendPacket = createPacket(packet, PacketType.DATA, packet.sequenceNo, response);
                 send(sendPacket);
@@ -81,7 +89,7 @@ handleGetRequest = (requestLine, packet) => {
         }
         Api.getFileDetails(requestLine[1], response => {
             if (response.length > PACKET_MAX_LENGTH) {
-                createMultiplePackets(packet, response);
+                sendMultiplePackets(packet, response);
             } else {
                 const sendPacket = createPacket(packet, PacketType.DATA, packet.sequenceNo, response);
                 send(sendPacket);
@@ -106,9 +114,24 @@ handleRequest = (packet) => {
                 console.log(`Connection ACK Reply received from client ${packet.peerAddress}:${packet.peerPort}`);
                 console.log('Connection Established.\n');
             } else {
-                console.log(`ACK Received from ${packet.peerAddress}:${packet.peerPort}`);
+                console.log(`ACK #${packet.sequenceNo} received from ${packet.peerAddress}:${packet.peerPort}`);
             }
         }
+
+        new Promise(resolve => {
+            if (segmentedPackets.length > 0) {
+                slidingWindow[packet.sequenceNo - segmentedPackets[0].sequenceNo] = PacketType.ACK;
+                if (slidingWindow[0] === PacketType.ACK) {
+                    segmentedPackets.shift();
+                    slidingWindow.shift();
+                    resolve();
+                }
+            }
+        }).then(() => {
+            if (segmentedPackets.length > slidingWindow.length) {
+                sendPendingPacket(slidingWindow.length);
+            }
+        });
     } else {
         if (debug) console.log(`DATA Request received from ${packet.peerAddress}:${packet.peerPort}`);
         if (method.includes(GET_CONSTANT)) {
