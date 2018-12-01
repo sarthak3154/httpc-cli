@@ -25,7 +25,7 @@ send = (sendPacket) => {
     });
 };
 
-let receivedPackets = new Array(WINDOW_SIZE);
+let receivedPackets = new Array(WINDOW_SIZE), shiftCount = 0;
 receivedPackets.fill(null);
 let segmentedPackets = [], slidingWindow = [];
 
@@ -53,6 +53,11 @@ handleDataTypePacket = (packet, buf) => {
     }
 };
 
+sendPendingPacket = (packetNo) => {
+    send(segmentedPackets[packetNo]);
+    slidingWindow.push(PacketType.NAK);
+};
+
 const clientPromise = new Promise((resolve) => {
     client.on('message', (buf, info) => {
         const packet = Packet.fromBuffer(buf);
@@ -69,7 +74,28 @@ const clientPromise = new Promise((resolve) => {
             if (packet.type === PacketType.DATA) {
                 handleDataTypePacket(packet, buf);
             } else if (packet.type === PacketType.ACK) {
+                if (segmentedPackets.length > 0 && packet.sequenceNo >= segmentedPackets[0].sequenceNo &&
+                    slidingWindow[packet.sequenceNo - segmentedPackets[0].sequenceNo] === PacketType.NAK) {
+                    console.log(`ACK #${packet.sequenceNo} received from ${packet.peerAddress}:${packet.peerPort}`);
+                    if (packet.payload.length > 0) {
+                        console.log(packet.payload);
+                    }
+                }
 
+                new Promise(resolve => {
+                    if (segmentedPackets.length > 0) {
+                        slidingWindow[packet.sequenceNo - segmentedPackets[0].sequenceNo] = PacketType.ACK;
+                        if (slidingWindow[0] === PacketType.ACK) {
+                            segmentedPackets.shift();
+                            slidingWindow.shift();
+                            resolve();
+                        }
+                    }
+                }).then(() => {
+                    if (segmentedPackets.length > slidingWindow.length) {
+                        sendPendingPacket(slidingWindow.length);
+                    }
+                });
             }
         }
     });
@@ -77,7 +103,7 @@ const clientPromise = new Promise((resolve) => {
 
 sendMultiplePackets = (request) => {
     const packetsCount = request.length / PACKET_PAYLOAD_SIZE;
-    if (debug) console.log('#packets to be sent: ' + Math.floor(packetsCount) + '\n');
+    console.log('#packets to be sent: ' + (Math.floor(packetsCount) + 1) + '\n');
     for (let i = 0; i < packetsCount; i++) {
         const payload = request.slice(i * PACKET_PAYLOAD_SIZE, PACKET_PAYLOAD_SIZE * (i + 1));
         const sendPacket = createPacket(PacketType.DATA, i + 1, payload);

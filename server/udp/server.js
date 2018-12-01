@@ -31,11 +31,8 @@ const server = dgram.createSocket('udp4');
 let segmentedPackets = [], slidingWindow = [];
 
 createPacket = (clientPacket, packetType, sequenceNo, response) => {
-    let packetBuilder = clientPacket.toBuilder().withSequenceNo(sequenceNo).withPayload(response);
-    if (packetType === PacketType.SYN_ACK) {
-        packetBuilder = packetBuilder.withType(packetType);
-    }
-    return packetBuilder.build();
+    return clientPacket.toBuilder().withType(packetType).withSequenceNo(sequenceNo)
+        .withPayload(response).build();
 };
 
 send = (sendPacket) => {
@@ -50,7 +47,7 @@ send = (sendPacket) => {
                     console.log(`Response sent to ${sendPacket.peerAddress}:${sendPacket.peerPort}`);
                 }
             }
-            if (sendPacket.type !== PacketType.SYN_ACK) {
+            if (sendPacket.type === PacketType.DATA) {
                 this.initPacketTimeout(sendPacket);
             }
         }
@@ -77,7 +74,7 @@ sendPendingPacket = (packetNo) => {
 
 sendMultiplePackets = (packet, response) => {
     const packetsCount = response.length / PACKET_PAYLOAD_SIZE;
-    if (debug) console.log('#packets to be sent: ' + Math.floor(packetsCount) + '\n');
+    if (debug) console.log('#packets to be sent: ' + (Math.floor(packetsCount) + 1) + '\n');
     for (let i = 0; i < packetsCount; i++) {
         const payload = response.slice(i * PACKET_PAYLOAD_SIZE, PACKET_PAYLOAD_SIZE * (i + 1));
         const sendPacket = createPacket(packet, PacketType.DATA, i + 1, payload);
@@ -121,7 +118,7 @@ handleGetRequest = (endPoint, packet) => {
     }
 };
 
-let contentLength = 0, endPoint, postData = '', receivedPackets = new Array(WINDOW_SIZE);
+let contentLength = 0, shiftCount = 0, endPoint, postData = '', receivedPackets = new Array(WINDOW_SIZE);
 receivedPackets.fill(null);
 
 handlePostRequest = (reqData, packet) => {
@@ -137,18 +134,18 @@ handlePostRequest = (reqData, packet) => {
     }
 
     let notNullIndex = receivedPackets.findIndex(Util.isNotNull);
-    const packetPosition = (packet.sequenceNo > WINDOW_SIZE) ?
-        packet.sequenceNo - receivedPackets[notNullIndex].sequenceNo - notNullIndex :
-        packet.sequenceNo - 1;
-    receivedPackets[packetPosition] = packet;
-    if (receivedPackets[0] !== null) {
+    const packetPosition = (notNullIndex !== -1 && packet.sequenceNo > WINDOW_SIZE) ?
+        packet.sequenceNo - (receivedPackets[notNullIndex].sequenceNo + notNullIndex) : packet.sequenceNo - 1;
+    receivedPackets[packetPosition - shiftCount] = packet;
+    while (receivedPackets[0] !== null) {
         const data = receivedPackets[0].payload;
         postData += (data.toLowerCase().includes(POST_CONSTANT) ? data.split('\r\n\r\n')[1].trim() : data);
+        shiftCount++;
         receivedPackets.shift();
         receivedPackets.push(null);
     }
 
-    if (contentLength !== 0 && postData.length === contentLength) {
+    if (contentLength !== 0 && postData.length >= contentLength) {
         Api.post(endPoint, postData, response => {
             const sendPacket = createPacket(packet, PacketType.ACK, packet.sequenceNo, response);
             send(sendPacket);
