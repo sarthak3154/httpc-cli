@@ -3,6 +3,7 @@
 require('../../constants');
 const Api = require('../api');
 const Packet = require('../../udp/packet');
+const Util = require('../../util');
 const dgram = require('dgram');
 const yargs = require('yargs');
 
@@ -88,8 +89,8 @@ sendMultiplePackets = (packet, response) => {
     }
 };
 
-handleGetRequest = (requestLine, packet) => {
-    if (requestLine[1] === '' || requestLine[1] === '/') {
+handleGetRequest = (endPoint, packet) => {
+    if (endPoint === '' || endPoint === '/') {
         if (debug) {
             console.log('Requesting GET /');
         }
@@ -105,9 +106,9 @@ handleGetRequest = (requestLine, packet) => {
         });
     } else {
         if (debug) {
-            console.log(`Requesting GET ${requestLine[1]}`);
+            console.log(`Requesting GET ${endPoint}`);
         }
-        Api.getFileDetails(requestLine[1], response => {
+        Api.getFileDetails(endPoint, response => {
             if (response.length > PACKET_MAX_LENGTH) {
                 sendMultiplePackets(packet, response);
             } else {
@@ -120,11 +121,45 @@ handleGetRequest = (requestLine, packet) => {
     }
 };
 
+let contentLength = 0, endPoint, postData = '', receivedPackets = new Array(WINDOW_SIZE);
+receivedPackets.fill(null);
+
+handlePostRequest = (reqData, packet) => {
+    if (reqData[0].toLowerCase().includes(POST_CONSTANT)) {
+        endPoint = reqData[0].split(' ')[1];
+        let i = 0;
+        while (contentLength === 0) {
+            if (reqData[i].includes(HEADER_CONTENT_LENGTH)) {
+                contentLength = parseInt(reqData[i].split(' ')[1].trim());
+            }
+            i++;
+        }
+    }
+
+    let notNullIndex = receivedPackets.findIndex(Util.isNotNull);
+    const packetPosition = (packet.sequenceNo > WINDOW_SIZE) ?
+        packet.sequenceNo - receivedPackets[notNullIndex].sequenceNo - notNullIndex :
+        packet.sequenceNo - 1;
+    receivedPackets[packetPosition] = packet;
+    if (receivedPackets[0] !== null) {
+        const data = receivedPackets[0].payload;
+        postData += (data.toLowerCase().includes(POST_CONSTANT) ? data.split('\r\n\r\n')[1].trim() : data);
+        receivedPackets.shift();
+        receivedPackets.push(null);
+    }
+
+    if (contentLength !== 0 && postData.length === contentLength) {
+        Api.post(endPoint, postData, response => {
+            const sendPacket = createPacket(packet, PacketType.ACK, packet.sequenceNo, response);
+            send(sendPacket);
+        });
+    } else {
+        const sendPacket = createPacket(packet, PacketType.ACK, packet.sequenceNo, EMPTY_REQUEST_RESPONSE);
+        send(sendPacket);
+    }
+};
+
 handleRequest = (packet) => {
-    const payload = packet.payload;
-    const reqData = payload.split('\r\n');
-    const method = reqData[0].toLowerCase();
-    const requestLine = method.split(' ');
 
     if (packet.type === PacketType.SYN) {
         if (debug) console.log(`Connection SYN Request received from client ${packet.peerAddress}:${packet.peerPort}`)
@@ -156,16 +191,13 @@ handleRequest = (packet) => {
             }
         });
     } else {
+        const reqData = packet.payload.split('\r\n');
+        const methodHeader = reqData[0].toLowerCase();
         if (debug) console.log(`DATA Request received from ${packet.peerAddress}:${packet.peerPort}`);
-        if (method.includes(GET_CONSTANT)) {
-            handleGetRequest(requestLine, packet);
-        } else if (method.includes(POST_CONSTANT)) {
-            Api.post(requestLine[1], payload.split('\r\n\r\n')[1], response => {
-                const sendPacket = createPacket(packet, PacketType.DATA, packet.sequenceNo, response);
-                slidingWindow.push(PacketType.NAK);
-                send(sendPacket);
-                segmentedPackets.push(sendPacket);
-            });
+        if (methodHeader.includes(GET_CONSTANT)) {
+            handleGetRequest(methodHeader.split(' ')[1], packet);
+        } else {
+            handlePostRequest(reqData, packet);
         }
     }
 };

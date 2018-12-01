@@ -1,4 +1,5 @@
 const Util = require('./util');
+const fs = require('fs');
 
 exports.getRequestObject = (url, args) => {
     const url_args = Util.getURLProperties(url);
@@ -30,7 +31,7 @@ exports.createHTTPRequest = (request) => {
     }
 
     if (request.hasOwnProperty('d') || request.hasOwnProperty('f')) {
-        const body = (request.hasOwnProperty('d') ? request.d : fs.readFileSync(request.f, 'utf8'));
+        const body = (request.hasOwnProperty('d') ? request.d : fs.readFileSync(request.f, 'utf8').trim());
         http_request += ('Content-Length: ' + body.length + '\r\n\r\n');
         http_request += (body + '\r\n');
     }

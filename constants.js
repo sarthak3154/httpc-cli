@@ -6,12 +6,12 @@ global.POST_CONSTANT = "post";
 global.DEFAULT_PORT = 80;
 global.LOCALHOST_PORT = 8080;
 global.USER_AGENT = 'Concordia-HTTP/1.0';
+global.HEADER_CONTENT_LENGTH = 'Content-Length';
 global.REDIRECT_STATUS_CODE = '302';
 global.UDP_REQUEST_TYPE = true;
 global.EMPTY_REQUEST_RESPONSE = "";
 global.ESTABLISH_CONNECTION = "Connected";
 global.RESPONSE_TIMEOUT = 500;
-
 
 /* Request/Response Content PacketType */
 
