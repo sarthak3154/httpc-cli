@@ -118,8 +118,30 @@ handleGetRequest = (endPoint, packet) => {
     }
 };
 
-let contentLength = 0, shiftCount = 0, endPoint, postData = '', receivedPackets = new Array(WINDOW_SIZE);
+let contentLength = 0, shiftCount = 0, packetCount = 0, endPoint, postResponse = false,
+    receivedPackets = new Array(WINDOW_SIZE), packets = [], packetSet = new Set();
 receivedPackets.fill(null);
+
+comparePacket = (a, b) => {
+    if (a.sequenceNo > b.sequenceNo)
+        return 1;
+    else if (b.sequenceNo > a.sequenceNo)
+        return -1;
+    return 0;
+};
+
+getHeaderLength = (packet) => {
+    return packet.payload.split('\r\n\r\n')[0].length;
+};
+
+getSortedRequestBody = (packets) => {
+    let body = '';
+    packets.forEach(packet => {
+        const data = packet.payload;
+        body += (data.toLowerCase().includes(POST_CONSTANT) ? data.split('\r\n\r\n')[1] : data);
+    });
+    return body;
+};
 
 handlePostRequest = (reqData, packet) => {
     if (reqData[0].toLowerCase().includes(POST_CONSTANT)) {
@@ -128,31 +150,44 @@ handlePostRequest = (reqData, packet) => {
         while (contentLength === 0) {
             if (reqData[i].includes(HEADER_CONTENT_LENGTH)) {
                 contentLength = parseInt(reqData[i].split(' ')[1].trim());
+                packetCount = Math.floor((contentLength + getHeaderLength(packet)) / PACKET_PAYLOAD_SIZE) + 1;
             }
             i++;
         }
     }
 
-    let notNullIndex = receivedPackets.findIndex(Util.isNotNull);
-    const packetPosition = (notNullIndex !== -1 && packet.sequenceNo > WINDOW_SIZE) ?
-        packet.sequenceNo - (receivedPackets[notNullIndex].sequenceNo + notNullIndex) : packet.sequenceNo - 1;
-    receivedPackets[packetPosition - shiftCount] = packet;
-    while (receivedPackets[0] !== null) {
-        const data = receivedPackets[0].payload;
-        postData += (data.toLowerCase().includes(POST_CONSTANT) ? data.split('\r\n\r\n')[1].trim() : data);
-        shiftCount++;
-        receivedPackets.shift();
-        receivedPackets.push(null);
-    }
-
-    if (contentLength !== 0 && postData.length >= contentLength) {
-        Api.post(endPoint, postData, response => {
-            const sendPacket = createPacket(packet, PacketType.ACK, packet.sequenceNo, response);
-            send(sendPacket);
-        });
-    } else {
+    if (packetSet.has(packet.sequenceNo)) {
+        console.log(`Packet #${packet.sequenceNo} already received`);
         const sendPacket = createPacket(packet, PacketType.ACK, packet.sequenceNo, EMPTY_REQUEST_RESPONSE);
         send(sendPacket);
+    } else {
+        console.log(`Packet #${packet.sequenceNo} arrived`);
+        console.log(`Payload-Length: ${packet.payload.length}\n`);
+        packetSet.add(packet.sequenceNo);
+        const notNullIndex = receivedPackets.findIndex(Util.isNotNull);
+        const packetPosition = (notNullIndex !== -1 && packet.sequenceNo > WINDOW_SIZE) ?
+            packet.sequenceNo - (receivedPackets[notNullIndex].sequenceNo + notNullIndex) : packet.sequenceNo - 1;
+        receivedPackets[packetPosition - shiftCount] = packet;
+        packets.push(packet);
+        packets.sort(comparePacket);
+
+        if (receivedPackets[0] !== null && WINDOW_SIZE + shiftCount !== packetCount) {
+            ++shiftCount;
+            receivedPackets.shift();
+            receivedPackets.push(null);
+        }
+
+        if (packetSet.size === packetCount && !postResponse) {
+            postResponse = true;
+            const sortedRequestBody = getSortedRequestBody(packets);
+            Api.post(endPoint, sortedRequestBody, response => {
+                const sendPacket = createPacket(packet, PacketType.ACK, packet.sequenceNo, response);
+                send(sendPacket);
+            });
+        } else {
+            const sendPacket = createPacket(packet, PacketType.ACK, packet.sequenceNo, EMPTY_REQUEST_RESPONSE);
+            send(sendPacket);
+        }
     }
 };
 

@@ -21,13 +21,29 @@ send = (sendPacket) => {
         } else {
             if (sendPacket.type === PacketType.SYN)
                 console.log(`Connection SYN Request sent to server ${ip.address()}:${SERVER_PORT}`);
+            else if (sendPacket.type === PacketType.DATA)
+                this.initPacketTimeout(sendPacket);
         }
+    });
+};
+
+let segmentedPackets = [], slidingWindow = [];
+
+exports.initPacketTimeout = (packet) => {
+    new Promise((resolve, reject) => {
+        setTimeout(() => {
+            if (segmentedPackets.length > 0 && segmentedPackets[0].sequenceNo <= packet.sequenceNo &&
+                slidingWindow[packet.sequenceNo - segmentedPackets[0].sequenceNo] === PacketType.NAK) {
+                reject(packet);
+            }
+        }, RESPONSE_TIMEOUT);
+    }).catch((packet) => {
+        send(packet);
     });
 };
 
 let receivedPackets = new Array(WINDOW_SIZE), shiftCount = 0;
 receivedPackets.fill(null);
-let segmentedPackets = [], slidingWindow = [];
 
 handleDataTypePacket = (packet, buf) => {
     let notNullIndex = receivedPackets.findIndex(Util.isNotNull);
@@ -58,6 +74,31 @@ sendPendingPacket = (packetNo) => {
     slidingWindow.push(PacketType.NAK);
 };
 
+handleAckTypePacket = (packet) => {
+    if (segmentedPackets.length > 0 && packet.sequenceNo >= segmentedPackets[0].sequenceNo &&
+        slidingWindow[packet.sequenceNo - segmentedPackets[0].sequenceNo] === PacketType.NAK) {
+        console.log(`ACK #${packet.sequenceNo} received from ${packet.peerAddress}:${packet.peerPort}`);
+        if (packet.payload.length > 0) {
+            console.log(packet.payload);
+        }
+    }
+
+    new Promise(resolve => {
+        if (segmentedPackets.length > 0) {
+            slidingWindow[packet.sequenceNo - segmentedPackets[0].sequenceNo] = PacketType.ACK;
+            if (slidingWindow[0] === PacketType.ACK) {
+                segmentedPackets.shift();
+                slidingWindow.shift();
+                resolve();
+            }
+        }
+    }).then(() => {
+        if (segmentedPackets.length > slidingWindow.length) {
+            sendPendingPacket(slidingWindow.length);
+        }
+    });
+};
+
 const clientPromise = new Promise((resolve) => {
     client.on('message', (buf, info) => {
         const packet = Packet.fromBuffer(buf);
@@ -74,28 +115,7 @@ const clientPromise = new Promise((resolve) => {
             if (packet.type === PacketType.DATA) {
                 handleDataTypePacket(packet, buf);
             } else if (packet.type === PacketType.ACK) {
-                if (segmentedPackets.length > 0 && packet.sequenceNo >= segmentedPackets[0].sequenceNo &&
-                    slidingWindow[packet.sequenceNo - segmentedPackets[0].sequenceNo] === PacketType.NAK) {
-                    console.log(`ACK #${packet.sequenceNo} received from ${packet.peerAddress}:${packet.peerPort}`);
-                    if (packet.payload.length > 0) {
-                        console.log(packet.payload);
-                    }
-                }
-
-                new Promise(resolve => {
-                    if (segmentedPackets.length > 0) {
-                        slidingWindow[packet.sequenceNo - segmentedPackets[0].sequenceNo] = PacketType.ACK;
-                        if (slidingWindow[0] === PacketType.ACK) {
-                            segmentedPackets.shift();
-                            slidingWindow.shift();
-                            resolve();
-                        }
-                    }
-                }).then(() => {
-                    if (segmentedPackets.length > slidingWindow.length) {
-                        sendPendingPacket(slidingWindow.length);
-                    }
-                });
+                handleAckTypePacket(packet);
             }
         }
     });
