@@ -42,19 +42,21 @@ exports.initPacketTimeout = (packet) => {
     });
 };
 
-let receivedPackets = new Array(WINDOW_SIZE), shiftCount = 0;
+let receivedPackets = new Array(WINDOW_SIZE), shiftCount = 0, packetSet = new Set();
 receivedPackets.fill(null);
 
 handleDataTypePacket = (packet, buf) => {
     let notNullIndex = receivedPackets.findIndex(Util.isNotNull);
-    if (notNullIndex !== -1 &&
-        receivedPackets[notNullIndex].sequenceNo - notNullIndex > packet.sequenceNo) {
+    if (packetSet.has(packet.sequenceNo) || (notNullIndex !== -1 &&
+        receivedPackets[notNullIndex].sequenceNo - notNullIndex > packet.sequenceNo)) {
         console.log(`Packet #${packet.sequenceNo} already received`);
         const sendPacket = createPacket(PacketType.ACK, packet.sequenceNo, EMPTY_REQUEST_RESPONSE);
         send(sendPacket);
     } else {
-        console.log('\nReceived %d bytes from %s:%d', buf.length, packet.peerAddress, packet.peerPort);
+        console.log('\nReceived %d bytes from %s:%d | #packet : %d', buf.length, packet.peerAddress,
+            packet.peerPort, packet.sequenceNo);
         console.log('Data received from server :\n\n' + packet.payload);
+        packetSet.add(packet.sequenceNo);
         if (receivedPackets[0] !== null) {
             receivedPackets.shift();
             receivedPackets.push(null);

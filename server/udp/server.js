@@ -183,6 +183,7 @@ handlePostRequest = (reqData, packet) => {
             Api.post(endPoint, sortedRequestBody, response => {
                 const sendPacket = createPacket(packet, PacketType.ACK, packet.sequenceNo, response);
                 send(sendPacket);
+                packetSet.clear();
             });
         } else {
             const sendPacket = createPacket(packet, PacketType.ACK, packet.sequenceNo, EMPTY_REQUEST_RESPONSE);
